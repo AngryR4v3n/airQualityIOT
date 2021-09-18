@@ -67,14 +67,13 @@ class MQ5:
         self.r0 = corrected
 
 
-
     def get_corrected_ppm(self, temp, hum):
         t = self.get_temp_hum_gain(temp, hum)
 
         #referencia segun documentacion.
         q = self.get_temp_hum_gain(20,65)
         res = self.rs * (q/t)
-        print("res", res)
+        print('corrected res', res)
         self.ppm = self.get_ppm(res)
     
 
@@ -104,8 +103,6 @@ class DHTSensor:
         if retry < 3:
             temp = self.dht_sensor.temperature()
             hum = self.dht_sensor.humidity()
-            print("Temperature: %3.1f °C" % temp)
-            print("Humidity: %3.1f %% RH" % hum)
             self.temp = temp
             self.hum = hum
             return temp, hum
@@ -114,7 +111,7 @@ class DHTSensor:
             self.error = 'DHT22 Sensor unavailable.'
             return -1,
 
-
+"""
 mq5 = MQ5()
 tempSensor = DHTSensor()
 #set R0
@@ -134,3 +131,4 @@ while True:
         print("PPM: ", mq5.ppm)
 
     time.sleep(5)
+"""

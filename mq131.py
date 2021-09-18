@@ -8,6 +8,7 @@ class MQ131:
         self.memAdr = 80 #"0x50" en hex.
         self.RO_LIMPIO = 0
         self.RL_VALUE = None
+        self.ppm = 0
         self.scan()
     
     def scan(self):
@@ -27,11 +28,5 @@ class MQ131:
         x = self.i2c.readfrom_mem(0x50, 0x00, 2)
         num = int.from_bytes(x, "big")
         ppm = (1.99 * num) / 4096 + 0.01
-        print("received this", num)
-        print("supposed ppm..", ppm)
+        self.ppm = ppm
 
-sensor = MQ131()
-
-while True:
-    sensor.read()
-    time.sleep(5)
