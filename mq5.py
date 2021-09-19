@@ -63,7 +63,7 @@ class MQ5:
         m = self.get_temp_hum_gain(temp, hum)
         n = self.get_temp_hum_gain(20, 65)
         corrected = (n/m)*r0
-        print('corrected PPM', corrected)
+        print('corrected R0', corrected)
         self.r0 = corrected
 
 

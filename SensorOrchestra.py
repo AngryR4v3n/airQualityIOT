@@ -46,12 +46,20 @@ print("Setting up everything!")
 mq5 = MQ5()
 tempSensor = DHTSensor()
 mq131 = MQ131()
-#set R0
+
+#set R0 MQ5
 mq5.get_resistance()
 tempSensor.get_temp_hum()
 print("Initial temp", tempSensor.temp, tempSensor.hum)
 mq5.get_corrected_r0(tempSensor.temp, tempSensor.hum)
 print("SET R0 for MQ5", mq5.r0)
+
+
+#set R0 Mq131
+mq131.read()
+mq131.resistance()
+mq131.get_corrected_r0(tempSensor.temp, tempSensor.hum)
+print('SET R0 for MQ131', mq131.r0)
 
 createFile()
 connectWifi()
@@ -64,13 +72,16 @@ while True:
         mq5.get_corrected_ppm(tempSensor.temp, tempSensor.hum)
         print("Corrected CO PPM: ", mq5.ppm)
 
+        mq131.read()
+        mq131.resistance()
+        mq131.get_corrected_ppm(tempSensor.temp, tempSensor.hum)
+        print('Corrected O3 PPM', mq131.ppm)
     else:
         mq5.get_resistance()
         mq5.get_ppm()
         print("CO PPM: ", mq5.ppm)
 
-    mq131.read()
-    print("O3 PPM", mq131.ppm)
+    
     # YYYY-MM-DD HH:MM
     if rtc.datetime()[5] < 10:
         timestamp = str(rtc.datetime()[0]) + '-' + str(rtc.datetime()[1]) + '-' +  str(rtc.datetime()[2]) + ' ' + str(rtc.datetime()[4]) + ':' + "0" + str(rtc.datetime()[5])
