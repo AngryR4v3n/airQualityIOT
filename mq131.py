@@ -1,5 +1,4 @@
 from machine import Pin, SoftI2C
-import time
 
 
 class MQ131:
@@ -36,6 +35,8 @@ class MQ131:
         else: 
             for device in x:
                 print("Addr", device, "Hex", hex(device))
+
+            self.memAdr = device
 
     def read(self):
         #conversion

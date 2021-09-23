@@ -29,40 +29,9 @@ class DGSULPSO2:
         # lo dejamos en continous mode.
         self.uart.write('c')
         print('Waiting for ADC stabilization for', stop, "seconds")
-        #time.sleep(stop)
-        print('Done waiting. Setting zero.')
-        self.uart.write('r')
-        time.sleep(3)
-        self.uart.write('B')
-        time.sleep(0.5)
-        buff = ''
-        toWrite = "082720010324 110601 SO2 1509 39.47"
-        buff = self.uart.readline()
-        buff = buff.decode('utf-8')
-        count = 0
-        while buff != 'Remove Sensor and Scan: \r\n' and count <= 20:
-            buff = self.uart.readline()
-            if buff:
-                buff = buff.decode('utf-8')
-            count += 1
-            time.sleep(1)
-            
-        print('buff', buff)
-        if buff == 'Remove Sensor and Scan: \r\n':
-            self.uart.write(toWrite)
-            self.uart.write('\r')
 
-        while buff != 'Setting zero...done\r\n' and count <= 50:
-            buff = self.uart.readline()
-            if buff:
-                buff = buff.decode('utf-8')
-            count += 1
-            time.sleep(1)
-
-        if buff == "Setting zero...done\r\n":
-            time.sleep(2)
-            print('Success at calib')
-
+        #toWrite = "082720010324 110601 SO2 1509 39.47"
+       
         
 
             
@@ -79,6 +48,7 @@ class DGSULPSO2:
                         # lo dejamos quince minutos en standby.
                         print('Starting zero calibrate.')
                         self.calibrate(900)
+                        self.ppm = -1
                     else:
                         self.ppm = ppm
                         print('Reporting ppm SO2 ', self.ppm)

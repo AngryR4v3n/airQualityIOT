@@ -1,9 +1,10 @@
 from mq131 import MQ131
 from mq5 import MQ5, DHTSensor
 from dgs import DGSULPSO2
+from grove import GroveSensor
 import network
-import ntptime
 import time
+from Azure import Azure
 from machine import RTC
 
 
@@ -35,19 +36,18 @@ def connectWifi():
 
         
     print("Local time:%s" %str(time.localtime()))
-    
-
-
-
-
 
 
 
 print("Setting up everything!")
+connectWifi()
 mq5 = MQ5()
 tempSensor = DHTSensor()
+grove = GroveSensor()
 mq131 = MQ131()
 dgs = DGSULPSO2()
+IoTPublisher = Azure()
+
 
 #set R0 MQ5
 mq5.get_resistance()
@@ -68,7 +68,7 @@ print('SET R0 for MQ131', mq131.r0)
 dgs = DGSULPSO2()
 dgs.start()
 createFile()
-connectWifi()
+
 f = open('logs.csv', "a")
 count = 0
 
