@@ -7,21 +7,20 @@ class MQ5:
     def __init__(self):
         # este es un ratio...
         #self.R0_LIMPIO = 6.22 #valores iniciales en datasheet.
-        self.RO_LIMPIO = 3300
-        self.RL_VALUE = 1000 #Resistencia en el MQ5 en ohms
+        self.RL_VALUE = 1000 #Resistencia en el MQ135 en ohms
         self.rs = 0
         self.r0 = 0
         self.ppm = 0
         #33 humidity
-        self.pointsH1 = [1.3745, 1.1718, 1.0881, 1.0441, 0.9934, 0.9449, 0.8921, 0.8480]
+        self.pointsH1 = [1.7164,1.2567,0.9996,0.9128]
         #85 humidity
-        self.pointsH2 = [1.1300,  0.9956, 0.9449, 0.8943, 0.8348, 0.7863, 0.7489, 0.7093]
+        self.pointsH2 = [1.5396,  1.1410, 0.9096, 0.8228]
         #para ambas graficas
-        self.x_points = [-10, 0, 10, 20, 30, 40, 50]
+        self.x_points = [-9.86, 4.99, 19.99, 50]
 
         #curva de grafica log-log
-        self.paramA = 933110825
-        self.paramB = -14.10743
+        self.paramA = 764.4864
+        self.paramB = -4.525248
     
     def get_resistance(self):
         valor = ADC(Pin(32)).read()
@@ -29,7 +28,7 @@ class MQ5:
         self.rs = res
 
     def get_r0(self):
-        self.r0 = self.rs * pow((self.paramA / 1), 1/self.paramB)
+        self.r0 = self.rs * pow((self.paramA / 0.001), 1/self.paramB)
         return self.r0
 
 

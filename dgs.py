@@ -9,6 +9,7 @@ class DGSULPSO2:
         self.line = ''
         self.ppm = 0
         self.heating = False
+        self.offset = 0
     
     def start(self):
         self.uart.write('c')
@@ -49,6 +50,11 @@ class DGSULPSO2:
                         print('Starting zero calibrate.')
                         self.calibrate(900)
                         self.ppm = -1
+                        if ppm < self.offset:
+                            self.offset = ppm
+
+                        self.ppm = ppm + ((-1)*self.offset)
+                        print('Reporting ppm offset', self.ppm)
                     else:
                         self.ppm = ppm
                         print('Reporting ppm SO2 ', self.ppm)

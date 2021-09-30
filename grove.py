@@ -1,6 +1,10 @@
-from machine import Pin, SoftI2C
-class GroveSensor:
+from math import pow
+import time
+from machine import I2C, Pin
+
+class Gas:
     DEFAULT_I2C_ADDR = 0x04
+
     ADDR_IS_SET = 0  # if this is the first time to run, if 1126, set
     ADDR_FACTORY_ADC_NH3 = 2
     ADDR_FACTORY_ADC_CO = 4
@@ -42,22 +46,11 @@ class GroveSensor:
     adcValueR0_C0_Buf = 0
     adcValueR0_NO2_Buf = 0
 
+    def __init__(self, addr=DEFAULT_I2C_ADDR):
+        self.i2c = I2C(scl=Pin(22), sda=Pin(21))
+        self.addr = addr
+        self.version = self.get_version()
 
-    def __init__(self):
-        self.i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
-        self.scan()
-    
-    def scan(self):
-        x = self.i2c.scan()
-
-        if len(x) == 0:
-            print("No Groove device found!")
-            return -1
-        else: 
-            for device in x:
-                print("Groove Adr", device, "Hex", hex(device))
-
-    
     def cmd(self, cmd, nbytes=2):
         self.i2c.writeto(self.addr, bytes(cmd))
         dta = 0
@@ -83,7 +76,35 @@ class GroveSensor:
 
         return dta
 
+    def get_version(self):
+        if self.cmd([self.CMD_READ_EEPROM, self.ADDR_IS_SET]) == 1126:
+            print("version = 2")
+            return 2
+        else:
+            print("version = 1")
+            print("version currently not supported")
+            from sys import exit
+
+            exit(1)
+
+    def change_addr(self, new_addr):
+        self.cmd([35, new_addr])
+        self.addr = new_addr
+
+    def power_on(self):
+        self.cmd([self.CMD_CONTROL_PWR, 1])
+
+    def power_off(self):
+        self.cmd([self.CMD_CONTROL_PWR, 0])
+
+    def led_on(self):
+        self.cmd([self.CMD_CONTROL_LED, 1])
+
+    def led_off(self):
+        self.cmd([self.CMD_CONTROL_LED, 0])
+
     def calc_gas(self, gas):
+        self.led_on()
 
         A0_0 = self.cmd([6, self.ADDR_USER_ADC_HN3])
         A0_1 = self.cmd([6, self.ADDR_USER_ADC_CO])
@@ -93,9 +114,9 @@ class GroveSensor:
         An_1 = self.cmd([self.CH_VALUE_CO])
         An_2 = self.cmd([self.CH_VALUE_NO2])
 
-        ratio0 = An_0 / A0_0 * (4095 - A0_0) / (4095 - An_0)
-        ratio1 = An_1 / A0_1 * (4095 - A0_1) / (4095 - An_1)
-        ratio2 = An_2 / A0_2 * (4095 - A0_2) / (4095 - An_2)
+        ratio0 = An_0 / A0_0 * (1023.0 - A0_0) / (1023.0 - An_0)
+        ratio1 = An_1 / A0_1 * (1023.0 - A0_1) / (1023.0 - An_1)
+        ratio2 = An_2 / A0_2 * (1023.0 - A0_2) / (1023.0 - An_2)
 
         c = 0.0
 
@@ -117,7 +138,105 @@ class GroveSensor:
         elif gas == self.C2H5OH:
             c = pow(ratio1, -1.552) * 1.622
 
+        if self.version == 2:
+            self.led_off()
+
         return c or -3
 
-    def power_on(self):
-        self.cmd([self.CMD_CONTROL_PWR, 1])
+    def display_eeprom(self):
+        print("ADDR_IS_SET = ", self.cmd(self.CMD_READ_EEPROM, self.ADDR_IS_SET))
+        print(
+            "ADDR_FACTORY_ADC_NH3 = ",
+            self.cmd(self.CMD_READ_EEPROM, self.ADDR_FACTORY_ADC_NH3),
+        )
+        print(
+            "ADDR_FACTORY_ADC_CO = ",
+            self.cmd(self.CMD_READ_EEPROM, self.ADDR_FACTORY_ADC_CO),
+        )
+        print(
+            "ADDR_FACTORY_ADC_NO2 = ",
+            self.cmd(self.CMD_READ_EEPROM, self.ADDR_FACTORY_ADC_NO2),
+        )
+        print(
+            "ADDR_USER_ADC_HN3 = ",
+            self.cmd(self.CMD_READ_EEPROM, self.ADDR_USER_ADC_HN3),
+        )
+        print(
+            "ADDR_USER_ADC_CO = ", self.cmd(self.CMD_READ_EEPROM, self.ADDR_USER_ADC_CO)
+        )
+        print(
+            "ADDR_USER_ADC_NO2 = ",
+            self.cmd(self.CMD_READ_EEPROM, self.ADDR_USER_ADC_NO2),
+        )
+        print(
+            "ADDR_I2C_ADDRESS = ", self.cmd(self.CMD_READ_EEPROM, self.ADDR_I2C_ADDRESS)
+        )
+
+    def do_calibrate(self):
+        i = 0
+        a0 = 0
+        a1 = 0
+        a2 = 0
+
+        while True:
+            a0 = self.cmd(self.CH_VALUE_NH3)
+            a1 = self.cmd(self.CH_VALUE_CO)
+            a2 = self.cmd(self.CH_VALUE_NO2)
+
+            print("{}\t{}\t{}".format(a0, a1, a2))
+            self.led_on()
+
+            cnt = 0
+            for i in range(20):
+                if (a0 - self.cmd(self.CH_VALUE_NH3)) > 2 or (
+                    self.cmd(self.CH_VALUE_NH3) - a0
+                ) > 2:
+                    cnt += 1
+                if (a1 - self.cmd(self.CH_VALUE_CO)) > 2 or (
+                    self.cmd(self.CH_VALUE_CO) - a1
+                ) > 2:
+                    cnt += 1
+                if (a2 - self.cmd(self.CH_VALUE_NO2)) > 2 or (
+                    self.cmd(self.CH_VALUE_NO2) - a2
+                ) > 2:
+                    cnt += 1
+
+                if cnt > 5:
+                    break
+
+                time.sleep(1)
+
+            self.led_off()
+            if cnt <= 5:
+                break
+            time.sleep(2)
+
+        print("write user adc value: ")
+        print("{}\t{}\t{}".format(a0, a1, a2))
+
+        tmp = [None] * 7
+
+        tmp[0] = 7
+
+        tmp[1] = a0 >> 8
+        tmp[2] = a0 & 0xFF
+
+        tmp[3] = a1 >> 8
+        tmp[4] = a1 & 0xFF
+
+        tmp[5] = a2 >> 8
+        tmp[6] = a2 & 0xFF
+
+        print('tmp', tmp)
+
+        self.cmd(self.addr, tmp, 7)
+
+    def gas_dump(self):
+        self.co = self.calc_gas(self.CO)
+        self.no2 = self.calc_gas(self.NO2)
+        self.nh3 = self.calc_gas(self.NH3)
+        self.c3h8 = self.calc_gas(self.C3H8)
+        self.c4h10 = self.calc_gas(self.C4H10)
+        self.ch4 = self.calc_gas(self.CH4)
+        self.h2 = self.calc_gas(self.H2)
+        self.c2h50h = self.calc_gas(self.C2H5OH)

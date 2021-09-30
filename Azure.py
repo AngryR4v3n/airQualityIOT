@@ -1,21 +1,7 @@
-import utime
-from util import create_mqtt_client, get_telemetry_topic, get_c2d_topic, parse_connection
-import network
 import time
-def connectWifi():
-    wifi = network.WLAN(network.STA_IF)
-    if not wifi.isconnected():
-        wifi.active(True)
-        wifi.connect("TIGO-A0AD", "molinajimenez")
-        time.sleep(6)
-        if wifi.isconnected():
-            print("Connected to Internet!")
-        else:
-            print("Wifi error")
-    else:
-        print("Already connected!")
+from util import create_mqtt_client, get_telemetry_topic, get_c2d_topic, parse_connection
 
-connectWifi()
+#Constantes, no cambiar.
 HOST_NAME = "HostName"
 SHARED_ACCESS_KEY_NAME = "SharedAccessKeyName"
 SHARED_ACCESS_KEY = "SharedAccessKey"
@@ -24,47 +10,59 @@ DEVICE_ID = "DeviceId"
 MODULE_ID = "ModuleId"
 GATEWAY_HOST_NAME = "GatewayHostName"
 
-## Parse the connection string into constituent parts
-dict_keys = parse_connection("HostName=hau-iot-hub.azure-devices.net;DeviceId=station;SharedAccessKey=49MVnJo7+2m5pli2eoLvPDmBlFzlVe+68PpO0duzITc=")
-shared_access_key = dict_keys.get(SHARED_ACCESS_KEY)
-shared_access_key_name =  dict_keys.get(SHARED_ACCESS_KEY_NAME)
-gateway_hostname = dict_keys.get(GATEWAY_HOST_NAME)
-hostname = dict_keys.get(HOST_NAME)
-device_id = dict_keys.get(DEVICE_ID)
-module_id = dict_keys.get(MODULE_ID)
 
-## Create you own shared access signature from the connection string that you have
-## Azure IoT Explorer can be used for this purpose.
-sas_token_str = "SharedAccessSignature sr=hau-iot-hub.azure-devices.net%2Fdevices%2Fstation&sig=ibQibQhSBx052lpU%2B4hUHxIjMoKOM%2B7NooQxb0McaZg%3D&se=1632376378"
+#Ciclo de vida -> Configure Vars, configure_mqtt, connect, callback_handler, subscribe_topic, telemetry_topic, y send. 
+class Azure:
+    def __init__(self):
+        self.dict_keys = parse_connection("HostName=hau-iot-hub.azure-devices.net;DeviceId=station;SharedAccessKey=49MVnJo7+2m5pli2eoLvPDmBlFzlVe+68PpO0duzITc=")
+        self.configure_vars()
+        ## Create you own shared access signature from the connection string that you have
+        ## Azure IoT Explorer can be used for this purpose.
+        self.sas_token_str = "SharedAccessSignature sr=hau-iot-hub.azure-devices.net%2Fdevices%2Fstation&sig=m%2FmAVWjbRAWWViV3qIH7F3O%2BV657Sn9RjbY2iHpEwwk%3D&se=1633734829"
+        
+    def configure_vars(self):
+        ## Parse the connection string into constituent parts
+        self.shared_access_key = self.dict_keys.get(SHARED_ACCESS_KEY)
+        self.shared_access_key_name =  self.dict_keys.get(SHARED_ACCESS_KEY_NAME)
+        self.gateway_hostname = self.dict_keys.get(GATEWAY_HOST_NAME)
+        self.hostname = self.dict_keys.get(HOST_NAME)
+        self.device_id = self.dict_keys.get(DEVICE_ID)
+        self.module_id = self.dict_keys.get(MODULE_ID)
+        ## Create username following the below format '<HOSTNAME>/<DEVICE_ID>'
+        self.username = self.hostname + '/' + self.device_id
 
-## Create username following the below format '<HOSTNAME>/<DEVICE_ID>'
-username = hostname + '/' + device_id
+    def configure_mqtt(self):
+        ## Create UMQTT ROBUST or UMQTT SIMPLE CLIENT
+        self.mqtt_client = create_mqtt_client(client_id=self.device_id, hostname=self.hostname, username=self.username, password=self.sas_token_str, port=8883, keepalive=120, ssl=True)
+
+    def connect(self):
+        print("Connecting to Azure...")
+        self.mqtt_client.reconnect()
 
 
-## Create UMQTT ROBUST or UMQTT SIMPLE CLIENT
-mqtt_client = create_mqtt_client(client_id=device_id, hostname=hostname, username=username, password=sas_token_str, port=8883, keepalive=120, ssl=True)
+    def callback_handler(self,topic, message_receive):
+        print("Received message from Azure:")
+        print(message_receive)
 
-print("connecting")
-mqtt_client.reconnect()
+    def subscribe_topic(self):
+        self.subscribe_topic = get_c2d_topic(self.device_id)
+    
+        self.mqtt_client.set_callback(self.callback_handler)
+        self.mqtt_client.subscribe(topic=self.subscribe_topic)
 
-def callback_handler(topic, message_receive):
-    print("Received message")
-    print(message_receive)
+        
+    def telemetry_topic(self):
+        self.topic = get_telemetry_topic(self.device_id)
 
-subscribe_topic = get_c2d_topic(device_id)
-mqtt_client.set_callback(callback_handler)
-mqtt_client.subscribe(topic=subscribe_topic)
+    
+    def send(self, toSend):
+        ## Send telemetry
+        print("Sending message....")
+        print(toSend)
+        self.mqtt_client.publish(topic=self.topic, msg=toSend)
+        time.sleep(2)
 
-print("Publishing")
-topic = get_telemetry_topic(device_id)
-
-## Send telemetry
-messages = ["Accio", "Aguamenti", "Alarte Ascendare", "Expecto Patronum", "Homenum Revelio", "Priori Incantato", "Revelio", "Rictusempra",  "Nox" , "Stupefy", "Wingardium Leviosa"]
-for i in range(0, len(messages)):
-    print("Sending message " + str(i))
-    mqtt_client.publish(topic=topic, msg=messages[i])
-    utime.sleep(2)
-
-## Send a C2D message and wait for it to arrive at the device
-print("waiting for message")
-mqtt_client.wait_msg()
+    def wait(self):
+        ## Send a C2D message and wait for it to arrive at the device
+        print("waiting for message")
+        self.mqtt_client.wait_msg()

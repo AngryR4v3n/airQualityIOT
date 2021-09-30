@@ -48,7 +48,7 @@ class MQ131:
          self.rs = ((4096 * self.RL_VALUE) / self.adc) - self.RL_VALUE
 
     def get_r0(self):
-        self.r0 = self.rs * pow((self.paramA / 1), 1/self.paramB)
+        self.r0 = self.rs * pow((self.paramA / 0.01), 1/self.paramB)
         return self.r0
 
 
