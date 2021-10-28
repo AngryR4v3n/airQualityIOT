@@ -31,7 +31,9 @@ class MQ131:
         x = self.i2c.scan()
 
         if len(x) == 0:
+            print('No device!')
             return -1
+            
         else: 
             for device in x:
                 print("Addr", device, "Hex", hex(device))

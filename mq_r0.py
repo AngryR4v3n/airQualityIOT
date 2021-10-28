@@ -21,7 +21,4 @@ createFile()
 while True: 
     resis = get_res()
     print("resis", resis)
-    rsr0 = resis/R0
-    ppm = get_ppm(rsr0)
-    print("ppm", ppm)
-    time.sleep(5)
+    time.sleep(1)

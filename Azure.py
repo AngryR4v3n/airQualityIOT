@@ -18,7 +18,7 @@ class Azure:
         self.configure_vars()
         ## Create you own shared access signature from the connection string that you have
         ## Azure IoT Explorer can be used for this purpose.
-        self.sas_token_str = "SharedAccessSignature sr=hau-iot-hub.azure-devices.net%2Fdevices%2Fstation&sig=m%2FmAVWjbRAWWViV3qIH7F3O%2BV657Sn9RjbY2iHpEwwk%3D&se=1633734829"
+        self.sas_token_str = "SharedAccessSignature sr=hau-iot-hub.azure-devices.net%2Fdevices%2Fstation&sig=XbXuliRprvlzOmB%2ByiqgxadFcd3h%2BKIJlY%2BeSbVCBVM%3D&se=1636031194"
         
     def configure_vars(self):
         ## Parse the connection string into constituent parts
@@ -60,8 +60,7 @@ class Azure:
         print("Sending message....")
         print(toSend)
         self.mqtt_client.publish(topic=self.topic, msg=toSend)
-        time.sleep(2)
-
+ 
     def wait(self):
         ## Send a C2D message and wait for it to arrive at the device
         print("waiting for message")

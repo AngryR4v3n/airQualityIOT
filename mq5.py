@@ -9,7 +9,7 @@ class MQ5:
         #self.R0_LIMPIO = 6.22 #valores iniciales en datasheet.
         self.RL_VALUE = 1000 #Resistencia en el MQ135 en ohms
         self.rs = 0
-        self.r0 = 0
+        self.r0 = 2300
         self.ppm = 0
         #33 humidity
         self.pointsH1 = [1.7164,1.2567,0.9996,0.9128]
@@ -28,7 +28,7 @@ class MQ5:
         self.rs = res
 
     def get_r0(self):
-        self.r0 = self.rs * pow((self.paramA / 0.001), 1/self.paramB)
+        self.r0 = self.rs * pow((self.paramA / 0.01), 1/self.paramB)
         return self.r0
 
 
@@ -58,11 +58,10 @@ class MQ5:
         return val
 
     def get_corrected_r0(self, temp, hum):
-        r0 = self.get_r0()
+       # r0 = self.get_r0()
         m = self.get_temp_hum_gain(temp, hum)
         n = self.get_temp_hum_gain(20, 65)
-        corrected = (n/m)*r0
-        print('corrected R0', corrected)
+        corrected = (n/m)*self.r0
         self.r0 = corrected
 
 
@@ -72,62 +71,9 @@ class MQ5:
         #referencia segun documentacion.
         q = self.get_temp_hum_gain(20,65)
         res = self.rs * (q/t)
-        print('corrected res', res)
         self.ppm = self.get_ppm(res)
     
 
 
     def get_ppm(self, rs_ro):
             return self.paramA * pow((rs_ro/self.r0), self.paramB);
-
-
-class DHTSensor:
-    def __init__(self):
-        self.temp = 0
-        self.hum = 0
-        self.error = None
-        self.dht_sensor = dht.DHT22(Pin(23))
-    def get_temp_hum(self):
-        retry = 0
-        while retry < 3:
-            try:
-                self.dht_sensor.measure()
-                break
-            except:
-                retry = retry + 1
-                print(".", end = "")
-
-            print("")
-
-        if retry < 3:
-            temp = self.dht_sensor.temperature()
-            hum = self.dht_sensor.humidity()
-            self.temp = temp
-            self.hum = hum
-            return temp, hum
-        else:
-            print("ERR: DHT22 Sensor unavailable.")
-            self.error = 'DHT22 Sensor unavailable.'
-            return -1,
-
-"""
-mq5 = MQ5()
-tempSensor = DHTSensor()
-#set R0
-mq5.get_resistance()
-tempSensor.get_temp_hum()
-print("Initial temp", tempSensor.temp, tempSensor.hum)
-mq5.get_corrected_r0(tempSensor.temp, tempSensor.hum)
-print("SET R0", mq5.r0)
-while True:
-    if tempSensor.get_temp_hum() != -1:
-        mq5.get_resistance()
-        mq5.get_corrected_ppm(tempSensor.temp, tempSensor.hum)
-        print("Corrected PPM: ", mq5.ppm)
-    else:
-        mq5.get_resistance()
-        mq5.get_ppm()
-        print("PPM: ", mq5.ppm)
-
-    time.sleep(5)
-"""

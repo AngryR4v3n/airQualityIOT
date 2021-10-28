@@ -38,28 +38,36 @@ class DGSULPSO2:
             
 
     def parse(self):
+        params = None
         if self.line:
-            params = self.line.decode('utf-8').split(',')
-            if len(params) < 10:
-                pass
-            else:
-                if not self.heating:
-                    ppm = int(params[1]) / 1000 #dado que viene en ppb
-                    if ppm < 0:
-                        # lo dejamos quince minutos en standby.
-                        print('Starting zero calibrate.')
-                        self.calibrate(900)
-                        self.ppm = -1
-                        if ppm < self.offset:
-                            self.offset = ppm
+            try:
+                params = self.line.decode('utf-8').split(',')
+            except:
+                print('Para la proxima bruh.')
 
-                        self.ppm = ppm + ((-1)*self.offset)
-                        print('Reporting ppm offset', self.ppm)
-                    else:
-                        self.ppm = ppm
-                        print('Reporting ppm SO2 ', self.ppm)
+            if params:
+                if len(params) < 10:
+                    pass
                 else:
-                    self.ppm = -1
+                    if not self.heating:
+                        ppm = int(params[1]) / 1000 #dado que viene en ppb
+                        if ppm < 0:
+                            # lo dejamos quince minutos en standby.
+                            print('Starting zero calibrate.')
+                            self.calibrate(900)
+                            self.ppm = -1
+                            if ppm < self.offset:
+                                self.offset = ppm
+
+                            self.ppm = ppm + ((-1)*self.offset)
+                            print('Reporting ppm offset', self.ppm)
+                        else:
+                            self.ppm = ppm
+                            print('Reporting ppm SO2 ', self.ppm)
+                    else:
+                        self.ppm = -1
+            else:
+                self.ppm = -1
 
 
 

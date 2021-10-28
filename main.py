@@ -12,6 +12,9 @@ import ntptime
 
 
 rtc = RTC()
+
+#MARCAR COMO FALSE AL TOMAR MUESTRAS.
+cleanAir = False
 def createFile():
     try:
         f=open('logs.csv', 'r')
@@ -31,7 +34,11 @@ def connectWifi():
     connected = False
     if not wifi.isconnected():
         wifi.active(True)
-        wifi.connect("Maria's iPhone", "mafer1234")
+        time.sleep(3)
+        try:
+            wifi.connect("TIGO-A0AD", "molinajimenez")
+        except:
+            print("WHY")
         #esperamos unos 6 segundos para autenticar
         time.sleep(6)
         if wifi.isconnected():
@@ -72,12 +79,14 @@ else:
     
 time.sleep(10)
 
-#set R0 MQ5
-mq5.get_resistance()
-tempSensor.get_temp_hum()
-print("Initial temp", tempSensor.temp, tempSensor.hum)
-mq5.get_corrected_r0(tempSensor.temp, tempSensor.hum)
-print("SET R0 for MQ5", mq5.r0)
+
+if cleanAir:
+    #set R0 MQ5
+    mq5.get_resistance()
+    tempSensor.get_temp_hum()
+    print("Initial temp", tempSensor.temp, tempSensor.hum)
+    mq5.get_corrected_r0(tempSensor.temp, tempSensor.hum)
+    print("SET R0 for MQ135", mq5.r0)
 
 
 #set R0 Mq131
@@ -86,6 +95,8 @@ mq131.resistance()
 mq131.get_corrected_r0(tempSensor.temp, tempSensor.hum)
 print('SET R0 for MQ131', mq131.r0)
 
+
+print("Initial temp", tempSensor.temp, tempSensor.hum)
 
 # set DGS SO2
 dgs = DGSULPSO2()
@@ -123,15 +134,27 @@ try:
             
         # YYYY-MM-DD HH:MM
         if rtc.datetime()[5] < 10:
-            timestamp = str(rtc.datetime()[0]) + '-' + str(rtc.datetime()[1]) + '-' +  str(rtc.datetime()[2]) + ' ' + str(rtc.datetime()[4]) + ':' + "0" + str(rtc.datetime()[5])
+            timestamp = str(rtc.datetime()[0]) + '-' + str(rtc.datetime()[1]) + '-' +  str(rtc.datetime()[2]) + ' ' + str(rtc.datetime()[4]) + ':' + "0" + str(rtc.datetime()[5]) + ':' + str(rtc.datetime()[6])
         else:
-            timestamp = str(rtc.datetime()[0]) + '-' + str(rtc.datetime()[1]) + '-' +  str(rtc.datetime()[2]) + ' ' + str(rtc.datetime()[4]) + ':' + str(rtc.datetime()[5])
+            timestamp = str(rtc.datetime()[0]) + '-' + str(rtc.datetime()[1]) + '-' +  str(rtc.datetime()[2]) + ' ' + str(rtc.datetime()[4]) + ':' + str(rtc.datetime()[5]) + ':' + str(rtc.datetime()[6])
         line = timestamp + ',' + str(mq5.ppm) + ',' + str(mq131.ppm) + ',' + str(dgs.ppm) + ',' + str(g.no2) + ',' + str(tempSensor.temp) + ',' + str(tempSensor.hum)
-        print("MICS CO", g.co)
+
+        co = (g.co + mq5.ppm) / 2 
+        #validacion
+        if dgs.ppm > 0.3:
+            dgs.ppm = 0
+        
+        if g.no2 > 0.75:
+            g.no2 = 0
+
+        if co > 100:
+            co = 0
+        
+        
         mqttStruct = {
             "TIMESTAMP": timestamp, 
-            "deviceId": 's01', 
-            "CO": mq5.ppm, 
+            "deviceId": 's02', 
+            "CO": co, 
             "SO2": dgs.ppm, 
             "O3": mq131.ppm, 
             "NO2": g.no2, 
@@ -147,7 +170,7 @@ try:
             f.close()
         else:
             count += 1
-        time.sleep(65)
+        time.sleep(30)
 
 except KeyboardInterrupt:
     dgs.stop()
