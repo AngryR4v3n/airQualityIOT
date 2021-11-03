@@ -5,12 +5,11 @@ class MQ131:
     def __init__(self):
         self.i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
         self.memAdr = 80 #"0x50" en hex.
-        self.RO_LIMPIO = 9748.603
         self.RL_VALUE = 10000 #segun medido
         self.ppm = 0
         self.adc = 0
         self.rs = 0
-        self.r0 = 0
+        self.r0 = 11748.603
 
         #curvas log log
         self.paramA = 6.747188

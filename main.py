@@ -88,12 +88,11 @@ if cleanAir:
     mq5.get_corrected_r0(tempSensor.temp, tempSensor.hum)
     print("SET R0 for MQ135", mq5.r0)
 
-
-#set R0 Mq131
-mq131.read()
-mq131.resistance()
-mq131.get_corrected_r0(tempSensor.temp, tempSensor.hum)
-print('SET R0 for MQ131', mq131.r0)
+    #set R0 Mq131
+    mq131.read()
+    mq131.resistance()
+    mq131.get_corrected_r0(tempSensor.temp, tempSensor.hum)
+    print('SET R0 for MQ131', mq131.r0)
 
 
 print("Initial temp", tempSensor.temp, tempSensor.hum)
@@ -142,13 +141,13 @@ try:
         co = (g.co + mq5.ppm) / 2 
         #validacion
         if dgs.ppm > 0.3:
-            dgs.ppm = 0
+            dgs.ppm = None
         
         if g.no2 > 0.75:
-            g.no2 = 0
+            g.no2 = None
 
         if co > 100:
-            co = 0
+            co = None
         
         
         mqttStruct = {
@@ -162,14 +161,17 @@ try:
             "humidity": tempSensor.hum
         }
         mqttStruct = ujson.dumps(mqttStruct)
-        IoTPublisher.send(mqttStruct)
-        f.write(line)
-        f.write('\n')
+        print("Info sent to csv: ",mqttStruct)
+        #IoTPublisher.send(mqttStruct)
+
         
         if count > 150:
             f.close()
         else:
             count += 1
+            f.write(line)
+            f.write('\n')
+        
         time.sleep(30)
 
 except KeyboardInterrupt:
